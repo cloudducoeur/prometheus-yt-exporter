@@ -133,8 +133,8 @@ func main() {
 		fetchMetrics()
 		promhttp.Handler().ServeHTTP(w, r)
 	})
-	log.Println("[INFO] Exporter running on :8000/metrics")
-	if err := http.ListenAndServe(":8000", nil); err != nil {
+	log.Println("[INFO] Exporter running on :1907/metrics")
+	if err := http.ListenAndServe(":1907", nil); err != nil {
 		log.Fatalf("[FATAL] HTTP server failed: %v", err)
 	}
 }
