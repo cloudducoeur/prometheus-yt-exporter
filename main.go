@@ -3,75 +3,22 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
 	"strconv"
 	"time"
 
-	"github.com/spf13/pflag"
-	"gopkg.in/yaml.v3"
-
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 // === CONFIGURATION ===
-type Config struct {
-	YouTubeAPIKey        string `yaml:"YOUTUBE_API_KEY"`
-	YouTubeVideoID       string `yaml:"YOUTUBE_VIDEO_ID"`
-	ScrapeIntervalSecond int    `yaml:"SCRAPE_INTERVAL_SECONDS"`
-}
-
 var (
-	apiKey         string
-	videoID        string
+	apiKey         = os.Getenv("YOUTUBE_API_KEY")
+	videoID        = os.Getenv("YOUTUBE_VIDEO_ID")
 	scrapeInterval = 30 * time.Second
 )
-
-func loadConfig() {
-	// Valeurs par défaut depuis l'env
-	cfg := Config{
-		YouTubeAPIKey:        os.Getenv("YOUTUBE_API_KEY"),
-		YouTubeVideoID:       os.Getenv("YOUTUBE_VIDEO_ID"),
-		ScrapeIntervalSecond: 30,
-	}
-	// Flags CLI
-	var (
-		flagConfig   = pflag.String("config", "config.yaml", "Path to config file")
-		flagAPIKey   = pflag.String("api-key", "", "YouTube API key (overrides config and env)")
-		flagVideoID  = pflag.String("video-id", "", "YouTube video ID (overrides config and env)")
-		flagInterval = pflag.Int("interval", 0, "Scrape interval in seconds (overrides config and env)")
-	)
-	pflag.Parse()
-	// Surcharge via config.yaml si présent
-	if _, err := os.Stat(*flagConfig); err == nil {
-		data, err := ioutil.ReadFile(*flagConfig)
-		if err != nil {
-			log.Printf("[WARN] Could not read %s: %v", *flagConfig, err)
-		} else {
-			if err := yaml.Unmarshal(data, &cfg); err != nil {
-				log.Printf("[WARN] Could not parse %s: %v", *flagConfig, err)
-			} else {
-				log.Printf("[INFO] Loaded configuration from %s", *flagConfig)
-			}
-		}
-	}
-	// Surcharge via CLI
-	if *flagAPIKey != "" {
-		cfg.YouTubeAPIKey = *flagAPIKey
-	}
-	if *flagVideoID != "" {
-		cfg.YouTubeVideoID = *flagVideoID
-	}
-	if *flagInterval > 0 {
-		cfg.ScrapeIntervalSecond = *flagInterval
-	}
-	apiKey = cfg.YouTubeAPIKey
-	videoID = cfg.YouTubeVideoID
-	scrapeInterval = time.Duration(cfg.ScrapeIntervalSecond) * time.Second
-}
 
 // === METRICS ===
 var (
@@ -170,11 +117,10 @@ func fetchMetrics() {
 }
 
 func main() {
-	loadConfig()
 	if apiKey == "" || videoID == "" {
-		log.Printf("[WARN] YOUTUBE_API_KEY and/or YOUTUBE_VIDEO_ID are not set (via CLI, config file or environment). Exporter will start, but metrics will be empty until values are provided.")
+		log.Fatal("[FATAL] Please set YOUTUBE_API_KEY and YOUTUBE_VIDEO_ID environment variables.")
 	} else {
-		log.Printf("[INFO] Using YOUTUBE_API_KEY and YOUTUBE_VIDEO_ID from CLI, config file or environment.")
+		log.Printf("[INFO] Using YOUTUBE_API_KEY and YOUTUBE_VIDEO_ID from environment.")
 	}
 
 	// Register metrics
